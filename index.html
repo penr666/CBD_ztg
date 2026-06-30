@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRMEB多商户系统 - 供应商管理原型</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/theme-chalk/index.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <el-container class="app-wrapper">
+      <!-- 左侧菜单 -->
+      <el-aside :width="isCollapse ? '64px' : '210px'" class="sidebar-container">
+        <div class="logo-wrap">
+          <div class="logo" :class="{collapse: isCollapse}">
+            <div class="logo-img">C</div>
+            <span v-if="!isCollapse" class="logo-text">CRMEB</span>
+          </div>
+        </div>
+        <el-scrollbar>
+          <el-menu
+            :default-active="currentMenu"
+            :collapse="isCollapse"
+            :collapse-transition="false"
+            background-color="#001529"
+            text-color="#ffffffb3"
+            active-text-color="#1890ff"
+            @select="handleMenuSelect"
+          >
+            <!-- 供应商管理 -->
+            <el-submenu index="supplier">
+              <template slot="title">
+                <i class="el-icon-s-cooperation"></i>
+                <span>供应商管理</span>
+              </template>
+              <el-menu-item index="supplier-list">供应商列表</el-menu-item>
+            </el-submenu>
+
+            <!-- 供应商商品 -->
+            <el-submenu index="supplier-product">
+              <template slot="title">
+                <i class="el-icon-s-goods"></i>
+                <span>供应商商品</span>
+              </template>
+              <el-menu-item index="supplier-product-list">商品列表</el-menu-item>
+              <el-menu-item index="supplier-product-examine">商品审核</el-menu-item>
+            </el-submenu>
+
+            <!-- 供应商订单 -->
+            <el-submenu index="supplier-order">
+              <template slot="title">
+                <i class="el-icon-s-order"></i>
+                <span>供应商订单</span>
+              </template>
+              <el-menu-item index="supplier-order-list">订单列表</el-menu-item>
+              <el-menu-item index="supplier-order-refund">退款订单</el-menu-item>
+              <el-menu-item index="supplier-order-deliver">发货管理</el-menu-item>
+            </el-submenu>
+
+            <!-- 供应商财务 -->
+            <el-submenu index="supplier-finance">
+              <template slot="title">
+                <i class="el-icon-s-finance"></i>
+                <span>供应商财务</span>
+              </template>
+              <el-menu-item index="supplier-finance-bill">资金记录</el-menu-item>
+              <el-menu-item index="supplier-finance-extract">提现管理</el-menu-item>
+              <el-menu-item index="supplier-finance-reconciliation">财务对账</el-menu-item>
+              <el-menu-item index="supplier-finance-settlement">结算管理</el-menu-item>
+            </el-submenu>
+
+
+          </el-menu>
+        </el-scrollbar>
+      </el-aside>
+
+      <!-- 主内容区 -->
+      <el-container class="main-container">
+        <!-- 顶部导航 -->
+        <el-header class="navbar" height="50px">
+          <div class="navbar-left">
+            <i :class="isCollapse ? 'el-icon-s-unfold' : 'el-icon-s-fold'" class="hamburger" @click="toggleCollapse"></i>
+            <el-breadcrumb separator="/" class="breadcrumb">
+              <el-breadcrumb-item>首页</el-breadcrumb-item>
+              <el-breadcrumb-item v-if="breadcrumbSecond">{{breadcrumbSecond}}</el-breadcrumb-item>
+              <el-breadcrumb-item v-if="breadcrumbThird">{{breadcrumbThird}}</el-breadcrumb-item>
+            </el-breadcrumb>
+          </div>
+          <div class="navbar-right">
+            <el-dropdown trigger="click">
+              <span class="el-dropdown-link">
+                <el-avatar :size="30" style="background:#1890ff;font-size:12px">管</el-avatar>
+                <span class="username">管理员</span>
+                <i class="el-icon-arrow-down el-icon--right"></i>
+              </span>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item>首页</el-dropdown-item>
+                <el-dropdown-item>个人中心</el-dropdown-item>
+                <el-dropdown-item divided>退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
+          </div>
+        </el-header>
+
+        <!-- Tags标签页 -->
+        <div class="tags-view">
+          <el-scrollbar>
+            <div class="tags-wrap">
+              <router-tag
+                v-for="(tag, index) in visitedViews"
+                :key="tag.path"
+                :tag="tag"
+                :active="currentMenu === tag.path"
+                @close="closeTag(index)"
+                @click="currentMenu = tag.path; currentPage = tag.path"
+              ></router-tag>
+            </div>
+          </el-scrollbar>
+        </div>
+
+        <!-- 内容区 -->
+        <el-main class="app-main">
+          <!-- ==================== 供应商列表 ==================== -->
+          <div v-if="currentPage === 'supplier-list'" class="page-content">
+            <div class="page-header">
+              <div class="header-search">
+                <el-form :inline="true" :model="supplierSearchForm" size="small" class="search-form">
+                  <el-form-item label="供应商名称">
+                    <el-input v-model="supplierSearchForm.name" placeholder="请输入供应商名称" clearable></el-input>
+                  </el-form-item>
+                  <el-form-item label="供应商编号">
+                    <el-input v-model="supplierSearchForm.code" placeholder="请输入供应商编号" clearable></el-input>
+                  </el-form-item>
+                  <el-form-item label="供应商分类">
+                    <el-select v-model="supplierSearchForm.classifyId" placeholder="请选择分类" clearable>
+                      <el-option label="原材料供应商" value="1"></el-option>
+                      <el-option label="成品供应商" value="2"></el-option>
+                      <el-option label="配件供应商" value="3"></el-option>
+                      <el-option label="包装供应商" value="4"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="供应商等级">
+                    <el-select v-model="supplierSearchForm.grade" placeholder="请选择等级" clearable>
+                      <el-option label="A级" value="A"></el-option>
+                      <el-option label="B级" value="B"></el-option>
+                      <el-option label="C级" value="C"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="状态">
+                    <el-select v-model="supplierSearchForm.status" placeholder="请选择状态" clearable>
+                      <el-option label="正常" value="1"></el-option>
+                      <el-option label="待审核" value="0"></el-option>
+                      <el-option label="已冻结" value="-1"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="创建时间">
+                    <el-date-picker v-model="supplierSearchForm.createTime" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd"></el-date-picker>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" icon="el-icon-search" @click="searchSupplier">搜索</el-button>
+                    <el-button icon="el-icon-refresh" @click="resetSupplierSearch">重置</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+              <div class="header-actions">
+                <el-button type="primary" icon="el-icon-plus" size="small" @click="openSupplierDialog()">新增供应商</el-button>
+                <el-button type="success" icon="el-icon-download" size="small">导出</el-button>
+                <el-button type="warning" icon="el-icon-upload2" size="small">导入</el-button>
+              </div>
+            </div>
+
+            <!-- 数据表格 -->
+            <el-card class="table-card" shadow="never">
+              <el-table :data="supplierListData" border stripe size="small" style="width:100%">
+                <el-table-column type="selection" width="50"></el-table-column>
+                <el-table-column prop="id" label="ID" width="80" sortable></el-table-column>
+                <el-table-column prop="code" label="供应商编号" width="130"></el-table-column>
+                <el-table-column prop="name" label="供应商名称" min-width="160">
+                  <template slot-scope="scope">
+                    <div class="supplier-name-cell">
+                      <el-avatar :size="32" style="background:#1890ff;font-size:12px">{{scope.row.name.substring(0,1)}}</el-avatar>
+                      <span class="name-text" @click="currentPage='supplier-detail'; currentMenu='supplier-list'; addTag('供应商详情','supplier-detail')">{{scope.row.name}}</span>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="classifyName" label="供应商分类" width="130"></el-table-column>
+                <el-table-column prop="grade" label="等级" width="80">
+                  <template slot-scope="scope">
+                    <el-tag :type="scope.row.grade==='A'?'danger':scope.row.grade==='B'?'warning':'info'" size="mini">{{scope.row.grade}}级</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="contactName" label="联系人" width="100"></el-table-column>
+                <el-table-column prop="contactPhone" label="联系电话" width="130"></el-table-column>
+                <el-table-column prop="account" label="登陆账号" width="140">
+                  <template slot-scope="scope">
+                    <span>{{scope.row.account || '-'}}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="productCount" label="商品数" width="80" sortable></el-table-column>
+                <el-table-column prop="orderCount" label="订单数" width="80" sortable></el-table-column>
+                <el-table-column prop="status" label="状态" width="90">
+                  <template slot-scope="scope">
+                    <el-tag :type="scope.row.status===1?'success':scope.row.status===0?'warning':'danger'" size="mini">{{scope.row.status===1?'正常':scope.row.status===0?'待审核':'已冻结'}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="createTime" label="创建时间" width="160" sortable></el-table-column>
+                <el-table-column label="操作" width="260" fixed="right">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="mini" @click="currentPage='supplier-detail'; addTag('供应商详情','supplier-detail')">详情</el-button>
+                    <el-button type="text" size="mini" @click="openSupplierDialog(scope.row)">编辑</el-button>
+                    <el-button type="text" size="mini" v-if="scope.row.status===0" @click="approveSupplier(scope.row)">审核</el-button>
+                    <el-button type="text" size="mini" style="color:#1890ff" @click="openPasswordDialog(scope.row)">修改密码</el-button>
+                    <el-button type="text" size="mini" style="color:#e6a23c" v-if="scope.row.status===1">冻结</el-button>
+                    <el-button type="text" size="mini" style="color:#67c23a" v-if="scope.row.status===-1">解冻</el-button>
+                    <el-button type="text" size="mini" style="color:#f56c6c">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrap">
+                <el-pagination
+                  @size-change="handleSizeChange"
+                  @current-change="handleCurrentChange"
+                  :current-page="1"
+                  :page-sizes="[10,20,50,100]"
+                  :page-size="10"
+                  layout="total, sizes, prev, pager, next, jumper"
+                  :total="128">
+                </el-pagination>
+              </div>
+            </el-card>
+
+            <!-- 新增/编辑供应商弹窗 -->
+            <el-dialog :title="isEdit ? '编辑供应商' : '新增供应商'" :visible.sync="showSupplierDialog" width="900px" :close-on-click-modal="false" top="5vh">
+              <el-form :model="supplierForm" :rules="supplierRules" ref="supplierFormRef" label-width="140px" size="small">
+                <!-- 基本信息 -->
+                <div class="form-section-title"><i class="el-icon-s-cooperation"></i> 基本信息</div>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="供应商名称" prop="name">
+                      <el-input v-model="supplierForm.name" placeholder="请输入供应商名称"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="供应商编号" prop="code">
+                      <el-input v-model="supplierForm.code" placeholder="请输入供应商编号或自动生成"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="供应商分类" prop="classifyId">
+                      <el-select v-model="supplierForm.classifyId" placeholder="请选择供应商分类" style="width:100%">
+                        <el-option label="原材料供应商" value="1"></el-option>
+                        <el-option label="成品供应商" value="2"></el-option>
+                        <el-option label="配件供应商" value="3"></el-option>
+                        <el-option label="包装供应商" value="4"></el-option>
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="供应商等级" prop="grade">
+                      <el-select v-model="supplierForm.grade" placeholder="请选择供应商等级" style="width:100%">
+                        <el-option label="A级-优质" value="A"></el-option>
+                        <el-option label="B级-良好" value="B"></el-option>
+                        <el-option label="C级-一般" value="C"></el-option>
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="供应商logo">
+                      <el-upload action="" list-type="picture-card" :limit="1" :auto-upload="false">
+                        <i class="el-icon-plus"></i>
+                      </el-upload>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="供应商简介">
+                      <el-input v-model="supplierForm.intro" type="textarea" :rows="4" placeholder="请输入供应商简介"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+
+                <!-- 登陆账号信息 -->
+                <div class="form-section-title"><i class="el-icon-user"></i> 登陆账号信息</div>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="登陆账号" prop="account">
+                      <el-input v-model="supplierForm.account" placeholder="请输入供应商登陆账号(手机号/邮箱)" clearable></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="初始密码" prop="password" v-if="!isEdit">
+                      <el-input v-model="supplierForm.password" placeholder="请输入初始密码(6-20位)" show-password clearable></el-input>
+                      <span class="form-tip">供应商首次登陆后可自行修改密码</span>
+                    </el-form-item>
+                    <el-form-item label="初始密码" v-if="isEdit">
+                      <span style="color:#999;font-size:12px">编辑时请使用"修改密码"功能</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+
+                <!-- 联系信息 -->
+                <div class="form-section-title"><i class="el-icon-phone"></i> 联系信息</div>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="联系人" prop="contactName">
+                      <el-input v-model="supplierForm.contactName" placeholder="请输入联系人姓名"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="联系电话" prop="contactPhone">
+                      <el-input v-model="supplierForm.contactPhone" placeholder="请输入联系电话"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="联系邮箱">
+                      <el-input v-model="supplierForm.contactEmail" placeholder="请输入联系邮箱"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="联系地址">
+                      <el-input v-model="supplierForm.contactAddress" placeholder="请输入联系地址"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="24">
+                    <el-form-item label="经营地址">
+                      <el-cascader v-model="supplierForm.businessArea" :options="areaOptions" placeholder="请选择省/市/区" style="width:30%"></el-cascader>
+                      <el-input v-model="supplierForm.businessAddress" placeholder="请输入详细地址" style="width:70%;margin-left:10px"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+
+                <!-- 经营信息 -->
+                <div class="form-section-title"><i class="el-icon-s-data"></i> 经营信息</div>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="经营范围">
+                      <el-input v-model="supplierForm.businessScope" type="textarea" :rows="3" placeholder="请输入经营范围描述"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="主营品类">
+                      <el-select v-model="supplierForm.mainCategory" multiple placeholder="请选择主营品类" style="width:100%">
+                        <el-option label="服装" value="clothing"></el-option>
+                        <el-option label="食品" value="food"></el-option>
+                        <el-option label="电子" value="electronics"></el-option>
+                        <el-option label="家居" value="home"></el-option>
+                        <el-option label="美妆" value="beauty"></el-option>
+                        <el-option label="母婴" value="baby"></el-option>
+                        <el-option label="运动" value="sports"></el-option>
+                        <el-option label="图书" value="books"></el-option>
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="供货区域">
+                      <el-select v-model="supplierForm.supplyArea" multiple placeholder="请选择供货区域" style="width:100%">
+                        <el-option label="全国" value="all"></el-option>
+                        <el-option label="华东地区" value="east"></el-option>
+                        <el-option label="华南地区" value="south"></el-option>
+                        <el-option label="华北地区" value="north"></el-option>
+                        <el-option label="西南地区" value="west"></el-option>
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="最低起订量">
+                      <el-input-number v-model="supplierForm.minOrderQty" :min="1" placeholder="请输入最低起订量" style="width:100%"></el-input-number>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+
+                <!-- 资质信息 -->
+                <div class="form-section-title"><i class="el-icon-document"></i> 资质信息</div>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="营业执照号">
+                      <el-input v-model="supplierForm.businessLicense" placeholder="请输入营业执照号"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="营业执照图片">
+                      <el-upload action="" list-type="picture-card" :limit="1" :auto-upload="false">
+                        <i class="el-icon-plus"></i>
+                      </el-upload>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="税务登记号">
+                      <el-input v-model="supplierForm.taxNumber" placeholder="请输入税务登记号"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="组织机构代码">
+                      <el-input v-model="supplierForm.orgCode" placeholder="请输入组织机构代码"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="24">
+                    <el-form-item label="其他资质证书">
+                      <el-upload action="" list-type="picture-card" :limit="5" :auto-upload="false">
+                        <i class="el-icon-plus"></i>
+                      </el-upload>
+                      <div class="upload-tip">支持上传jpg/png文件，单个文件不超过5MB，最多上传5张</div>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+
+                <!-- 合作条款 -->
+                <div class="form-section-title"><i class="el-icon-s-claim"></i> 合作条款</div>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="结算周期">
+                      <el-select v-model="supplierForm.settlementCycle" placeholder="请选择结算周期" style="width:100%">
+                        <el-option label="日结" value="daily"></el-option>
+                        <el-option label="周结" value="weekly"></el-option>
+                        <el-option label="月结" value="monthly"></el-option>
+                        <el-option label="季度结" value="quarterly"></el-option>
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="结算方式">
+                      <el-select v-model="supplierForm.settlementMethod" placeholder="请选择结算方式" style="width:100%">
+                        <el-option label="银行转账" value="bank"></el-option>
+                        <el-option label="支付宝" value="alipay"></el-option>
+                        <el-option label="微信支付" value="wechat"></el-option>
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="佣金比例(%)">
+                      <el-input-number v-model="supplierForm.commissionRate" :min="0" :max="100" :precision="2" style="width:100%"></el-input-number>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="结算银行账户">
+                      <el-input v-model="supplierForm.bankAccount" placeholder="请输入结算银行账户"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="开户银行">
+                      <el-input v-model="supplierForm.bankName" placeholder="请输入开户银行名称"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="开户行支行">
+                      <el-input v-model="supplierForm.bankBranch" placeholder="请输入开户行支行"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="24">
+                    <el-form-item label="合作备注">
+                      <el-input v-model="supplierForm.remark" type="textarea" :rows="4" placeholder="请输入合作备注或特殊条款说明"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-form>
+              <div slot="footer">
+                <el-button @click="showSupplierDialog=false">取消</el-button>
+                <el-button type="primary" @click="submitSupplierForm">提交</el-button>
+              </div>
+            </el-dialog>
+
+            <!-- 修改密码弹窗 -->
+            <el-dialog title="修改供应商登陆密码" :visible.sync="showPasswordDialog" width="450px" :close-on-click-modal="false">
+              <el-form :model="passwordForm" :rules="passwordRules" ref="passwordFormRef" label-width="100px" size="small">
+                <el-form-item label="供应商">
+                  <span style="font-weight:600">{{passwordForm.supplierName}}</span>
+                </el-form-item>
+                <el-form-item label="登陆账号">
+                  <span>{{passwordForm.account}}</span>
+                </el-form-item>
+                <el-form-item label="新密码" prop="newPassword">
+                  <el-input v-model="passwordForm.newPassword" placeholder="请输入新密码(6-20位)" show-password></el-input>
+                </el-form-item>
+                <el-form-item label="确认密码" prop="confirmPassword">
+                  <el-input v-model="passwordForm.confirmPassword" placeholder="请再次输入新密码" show-password></el-input>
+                </el-form-item>
+              </el-form>
+              <div slot="footer">
+                <el-button @click="showPasswordDialog=false">取消</el-button>
+                <el-button type="primary" @click="submitPassword">确认修改</el-button>
+              </div>
+            </el-dialog>
+          </div>
+
+          <!-- ==================== 供应商详情 ==================== -->
+          <div v-if="currentPage === 'supplier-detail'" class="page-content">
+            <!-- 详情头部 -->
+            <el-card shadow="never" class="detail-header-card">
+              <div class="detail-header">
+                <div class="detail-avatar">
+                  <el-avatar :size="64" style="background:#1890ff;font-size:24px">华</el-avatar>
+                </div>
+                <div class="detail-info">
+                  <div class="detail-name">
+                    <h2>华鑫原材料供应商</h2>
+                    <el-tag type="success" size="small">正常</el-tag>
+                    <el-tag type="danger" size="small" effect="dark">A级</el-tag>
+                    <el-tag size="small">原材料供应商</el-tag>
+                  </div>
+                  <div class="detail-meta">
+                    <span>编号: SUP20240001</span>
+                    <span>账号: huaxin_supplier</span>
+                    <span>联系人: 张明华</span>
+                    <span>联系电话: 138-0000-1234</span>
+                    <span>创建时间: 2024-01-15 10:30:00</span>
+                  </div>
+                </div>
+                <div class="detail-actions">
+                  <el-button type="primary" size="small" icon="el-icon-edit" @click="openSupplierDialog()">编辑</el-button>
+                  <el-button type="warning" size="small" icon="el-icon-warning">冻结</el-button>
+                  <el-button size="small" icon="el-icon-s-unfold">进入供应商后台</el-button>
+                </div>
+              </div>
+              <!-- 统计数据 -->
+              <el-row :gutter="16" class="detail-stats">
+                <el-col :span="4">
+                  <div class="mini-stat"><div class="mini-stat-val">356</div><div class="mini-stat-label">商品总数</div></div>
+                </el-col>
+                <el-col :span="4">
+                  <div class="mini-stat"><div class="mini-stat-val">1,289</div><div class="mini-stat-label">订单总数</div></div>
+                </el-col>
+                <el-col :span="4">
+                  <div class="mini-stat"><div class="mini-stat-val">¥528.6万</div><div class="mini-stat-label">累计销售额</div></div>
+                </el-col>
+                <el-col :span="4">
+                  <div class="mini-stat"><div class="mini-stat-val">¥42.3万</div><div class="mini-stat-label">待结算金额</div></div>
+                </el-col>
+                <el-col :span="4">
+                  <div class="mini-stat"><div class="mini-stat-val">4.8</div><div class="mini-stat-label">评分</div></div>
+                </el-col>
+                <el-col :span="4">
+                  <div class="mini-stat"><div class="mini-stat-val">97%</div><div class="mini-stat-label">发货及时率</div></div>
+                </el-col>
+              </el-row>
+            </el-card>
+
+            <!-- 详情Tab切换 -->
+            <el-card shadow="never" class="detail-tabs-card">
+              <el-tabs v-model="detailActiveTab">
+                <!-- 基本信息 -->
+                <el-tab-pane label="基本信息" name="basic">
+                  <!-- 供应商基本信息 -->
+                  <div class="desc-section">
+                    <div class="desc-title">供应商基本信息</div>
+                    <div class="desc-grid">
+                      <div class="desc-row"><span class="desc-label">供应商名称</span><span class="desc-value">华鑫原材料供应商</span></div>
+                      <div class="desc-row"><span class="desc-label">供应商编号</span><span class="desc-value">SUP20240001</span></div>
+                      <div class="desc-row"><span class="desc-label">供应商分类</span><span class="desc-value">原材料供应商</span></div>
+                      <div class="desc-row"><span class="desc-label">供应商等级</span><span class="desc-value">A级</span></div>
+                      <div class="desc-row"><span class="desc-label">联系人</span><span class="desc-value">张明华</span></div>
+                      <div class="desc-row"><span class="desc-label">联系电话</span><span class="desc-value">138-0000-1234</span></div>
+                      <div class="desc-row"><span class="desc-label">联系邮箱</span><span class="desc-value">zhang@huaxin.com</span></div>
+                      <div class="desc-row"><span class="desc-label">联系地址</span><span class="desc-value">广东省深圳市南山区科技园路128号</span></div>
+                      <div class="desc-row"><span class="desc-label">经营范围</span><span class="desc-value">各类原材料、化工原料、金属材料的供应与批发</span></div>
+                      <div class="desc-row"><span class="desc-label">主营品类</span><span class="desc-value">家居, 电子</span></div>
+                      <div class="desc-row"><span class="desc-label">供货区域</span><span class="desc-value">全国</span></div>
+                      <div class="desc-row"><span class="desc-label">最低起订量</span><span class="desc-value">100</span></div>
+                      <div class="desc-row full"><span class="desc-label">供应商简介</span><span class="desc-value">华鑫原材料供应商成立于2010年，是国内领先的原材料供应企业，拥有完善的供应链管理体系</span></div>
+                    </div>
+                  </div>
+                  <!-- 账号信息 -->
+                  <div class="desc-section" style="margin-top:20px">
+                    <div class="desc-title">登陆账号信息</div>
+                    <div class="desc-grid">
+                      <div class="desc-row"><span class="desc-label">登陆账号</span><span class="desc-value">huaxin_supplier</span></div>
+                      <div class="desc-row"><span class="desc-label">账号状态</span><span class="desc-value"><el-tag type="success" size="mini">正常</el-tag></span></div>
+                      <div class="desc-row"><span class="desc-label">最近登陆时间</span><span class="desc-value">2024-06-28 09:15:00</span></div>
+                      <div class="desc-row"><span class="desc-label">最近登陆IP</span><span class="desc-value">192.168.1.100</span></div>
+                      <div class="desc-row"><span class="desc-label">密码修改时间</span><span class="desc-value">2024-05-20 14:00:00</span></div>
+                      <div class="desc-row"><span class="desc-label">操作</span><span class="desc-value"><el-button type="text" size="mini" style="color:#1890ff" @click="showPasswordDialog=true; passwordForm={supplierName:'华鑫原材料供应商', account:'huaxin_supplier', newPassword:'', confirmPassword:''}">修改密码</el-button></span></div>
+                    </div>
+                  </div>
+                  <!-- 资质信息 -->
+                  <div class="desc-section" style="margin-top:20px">
+                    <div class="desc-title">资质信息</div>
+                    <div class="desc-grid">
+                      <div class="desc-row"><span class="desc-label">营业执照号</span><span class="desc-value">91440300MA5F2XXX8X</span></div>
+                      <div class="desc-row"><span class="desc-label">营业执照图片</span><span class="desc-value"><div style="width:100px;height:60px;background:#f0f2f5;display:inline-flex;align-items:center;justify-content:center;border-radius:4px;color:#999;font-size:12px">暂无图片</div></span></div>
+                      <div class="desc-row"><span class="desc-label">税务登记号</span><span class="desc-value">440300XXXXX</span></div>
+                      <div class="desc-row"><span class="desc-label">组织机构代码</span><span class="desc-value">MA5F2XXX-8</span></div>
+                    </div>
+                  </div>
+                  <!-- 合作条款 -->
+                  <div class="desc-section" style="margin-top:20px">
+                    <div class="desc-title">合作条款</div>
+                    <div class="desc-grid">
+                      <div class="desc-row"><span class="desc-label">结算周期</span><span class="desc-value">月结</span></div>
+                      <div class="desc-row"><span class="desc-label">结算方式</span><span class="desc-value">银行转账</span></div>
+                      <div class="desc-row"><span class="desc-label">佣金比例</span><span class="desc-value">5.00%</span></div>
+                      <div class="desc-row"><span class="desc-label">结算银行账户</span><span class="desc-value">6222 0200 0000 1234567</span></div>
+                      <div class="desc-row"><span class="desc-label">开户银行</span><span class="desc-value">中国工商银行</span></div>
+                      <div class="desc-row"><span class="desc-label">开户行支行</span><span class="desc-value">深圳南山支行</span></div>
+                      <div class="desc-row full"><span class="desc-label">合作备注</span><span class="desc-value">按月结算，每月5号前完成上月结算对账</span></div>
+                    </div>
+                  </div>
+                </el-tab-pane>
+
+                <!-- 经营数据 -->
+                <el-tab-pane label="经营数据" name="data">
+                  <div class="data-chart-area">
+                    <el-row :gutter="16">
+                      <el-col :span="12">
+                        <el-card shadow="never">
+                          <div slot="header">销售趋势（近30天）</div>
+                          <div class="chart-placeholder">
+                            <div class="mock-chart">
+                              <div class="chart-bars">
+                                <div class="bar" :style="{height: barHeights1[i-1]+'%', background:'#1890ff'}" v-for="(h, i) in 15" :key="'bar1-'+i"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </el-card>
+                      </el-col>
+                      <el-col :span="12">
+                        <el-card shadow="never">
+                          <div slot="header">订单趋势（近30天）</div>
+                          <div class="chart-placeholder">
+                            <div class="mock-chart">
+                              <div class="chart-bars">
+                                <div class="bar" :style="{height: barHeights2[i-1]+'%', background:'#52c41a'}" v-for="(h, i) in 15" :key="'bar2-'+i"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </el-card>
+                      </el-col>
+                    </el-row>
+                    <el-row :gutter="16" style="margin-top:16px">
+                      <el-col :span="12">
+                        <el-card shadow="never">
+                          <div slot="header">商品品类分布</div>
+                          <div class="chart-placeholder">
+                            <div class="mock-pie">
+                              <div class="pie-segment" style="background:#1890ff;transform:rotate(0deg)"></div>
+                              <div class="pie-segment" style="background:#52c41a"></div>
+                              <div class="pie-segment" style="background:#faad14"></div>
+                            </div>
+                            <div class="pie-labels">
+                              <span style="color:#1890ff">电子 45%</span>
+                              <span style="color:#52c41a">家居 30%</span>
+                              <span style="color:#faad14">其他 25%</span>
+                            </div>
+                          </div>
+                        </el-card>
+                      </el-col>
+                      <el-col :span="12">
+                        <el-card shadow="never">
+                          <div slot="header">供货区域分布</div>
+                          <div class="chart-placeholder">
+                            <div class="mock-pie">
+                              <div class="pie-segment" style="background:#722ed1"></div>
+                              <div class="pie-segment" style="background:#eb2f96"></div>
+                            </div>
+                            <div class="pie-labels">
+                              <span style="color:#722ed1">华东 60%</span>
+                              <span style="color:#eb2f96">全国 40%</span>
+                            </div>
+                          </div>
+                        </el-card>
+                      </el-col>
+                    </el-row>
+                  </div>
+                </el-tab-pane>
+
+                <!-- 供应商商品 -->
+                <el-tab-pane label="供应商商品" name="products">
+                  <div class="tab-search">
+                    <el-form :inline="true" size="small">
+                      <el-form-item label="商品名称">
+                        <el-input placeholder="请输入商品名称" clearable></el-input>
+                      </el-form-item>
+                      <el-form-item label="商品状态">
+                        <el-select placeholder="请选择状态" clearable>
+                          <el-option label="上架" value="1"></el-option>
+                          <el-option label="下架" value="0"></el-option>
+                          <el-option label="待审核" value="-1"></el-option>
+                        </el-select>
+                      </el-form-item>
+                      <el-form-item>
+                        <el-button type="primary" icon="el-icon-search">搜索</el-button>
+                      </el-form-item>
+                    </el-form>
+                  </div>
+                  <el-table :data="supplierProductData" border stripe size="small">
+                    <el-table-column prop="id" label="ID" width="80"></el-table-column>
+                    <el-table-column prop="image" label="商品图片" width="80">
+                      <template slot-scope="scope"><div class="img-cell" style="background:#f0f2f5">图</div></template>
+                    </el-table-column>
+                    <el-table-column prop="name" label="商品名称" min-width="200"></el-table-column>
+                    <el-table-column prop="price" label="价格" width="100"></el-table-column>
+                    <el-table-column prop="stock" label="库存" width="80"></el-table-column>
+                    <el-table-column prop="sales" label="销量" width="80"></el-table-column>
+                    <el-table-column prop="status" label="状态" width="80">
+                      <template slot-scope="scope">
+                        <el-tag :type="scope.row.status===1?'success':'info'" size="mini">{{scope.row.status===1?'上架':'下架'}}</el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="createTime" label="创建时间" width="160"></el-table-column>
+                    <el-table-column label="操作" width="120" fixed="right">
+                      <template slot-scope="scope">
+                        <el-button type="text" size="mini">查看</el-button>
+                        <el-button type="text" size="mini" style="color:#f56c6c" v-if="scope.row.status===1">下架</el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </el-tab-pane>
+
+                <!-- 供应商订单 -->
+                <el-tab-pane label="供应商订单" name="orders">
+                  <div class="tab-search">
+                    <el-form :inline="true" size="small">
+                      <el-form-item label="订单号">
+                        <el-input placeholder="请输入订单号" clearable></el-input>
+                      </el-form-item>
+                      <el-form-item label="订单状态">
+                        <el-select placeholder="请选择状态" clearable>
+                          <el-option label="待付款" value="0"></el-option>
+                          <el-option label="待发货" value="1"></el-option>
+                          <el-option label="待收货" value="2"></el-option>
+                          <el-option label="已完成" value="3"></el-option>
+                          <el-option label="已退款" value="-1"></el-option>
+                        </el-select>
+                      </el-form-item>
+                      <el-form-item>
+                        <el-button type="primary" icon="el-icon-search">搜索</el-button>
+                      </el-form-item>
+                    </el-form>
+                  </div>
+                  <el-table :data="supplierOrderData" border stripe size="small">
+                    <el-table-column prop="orderId" label="订单号" width="180"></el-table-column>
+                    <el-table-column prop="productName" label="商品信息" min-width="200"></el-table-column>
+                    <el-table-column prop="totalPrice" label="订单金额" width="100"></el-table-column>
+                    <el-table-column prop="actualPrice" label="实付金额" width="100"></el-table-column>
+                    <el-table-column prop="buyer" label="买家" width="100"></el-table-column>
+                    <el-table-column prop="status" label="状态" width="80">
+                      <template slot-scope="scope">
+                        <el-tag :type="scope.row.statusType" size="mini">{{scope.row.status}}</el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="createTime" label="下单时间" width="160"></el-table-column>
+                    <el-table-column label="操作" width="100" fixed="right">
+                      <template slot-scope="scope">
+                        <el-button type="text" size="mini">详情</el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </el-tab-pane>
+
+                <!-- 操作日志 -->
+                <el-tab-pane label="操作日志" name="log">
+                  <el-table :data="supplierLogData" border stripe size="small">
+                    <el-table-column prop="id" label="ID" width="80"></el-table-column>
+                    <el-table-column prop="operator" label="操作人" width="120"></el-table-column>
+                    <el-table-column prop="action" label="操作类型" width="120"></el-table-column>
+                    <el-table-column prop="content" label="操作内容" min-width="300"></el-table-column>
+                    <el-table-column prop="createTime" label="操作时间" width="160"></el-table-column>
+                  </el-table>
+                </el-tab-pane>
+              </el-tabs>
+            </el-card>
+          </div>
+
+
+          <!-- ==================== 供应商商品列表 ==================== -->
+          <div v-if="currentPage === 'supplier-product-list'" class="page-content">
+            <div class="page-header">
+              <div class="header-search">
+                <el-form :inline="true" size="small" class="search-form">
+                  <el-form-item label="商品名称">
+                    <el-input placeholder="请输入商品名称" clearable></el-input>
+                  </el-form-item>
+                  <el-form-item label="供应商">
+                    <el-select placeholder="请选择供应商" clearable>
+                      <el-option label="华鑫原材料供应商" value="1"></el-option>
+                      <el-option label="鼎盛成品供应商" value="2"></el-option>
+                      <el-option label="联合配件供应商" value="3"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="商品分类">
+                    <el-cascader placeholder="请选择商品分类" clearable :options="productCategoryOptions"></el-cascader>
+                  </el-form-item>
+                  <el-form-item label="商品状态">
+                    <el-select placeholder="请选择状态" clearable>
+                      <el-option label="上架" value="1"></el-option>
+                      <el-option label="下架" value="0"></el-option>
+                      <el-option label="待审核" value="-1"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" icon="el-icon-search">搜索</el-button>
+                    <el-button icon="el-icon-refresh">重置</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+              <div class="header-actions">
+                <el-button type="success" icon="el-icon-download" size="small">导出</el-button>
+              </div>
+            </div>
+            <el-card shadow="never" class="table-card">
+              <el-table :data="supplierProductListData" border stripe size="small">
+                <el-table-column type="selection" width="50"></el-table-column>
+                <el-table-column prop="id" label="ID" width="80" sortable></el-table-column>
+                <el-table-column prop="image" label="商品图片" width="80">
+                  <template slot-scope="scope"><div class="img-cell" style="background:#f0f2f5">图</div></template>
+                </el-table-column>
+                <el-table-column prop="name" label="商品名称" min-width="200"></el-table-column>
+                <el-table-column prop="supplierName" label="供应商" width="160"></el-table-column>
+                <el-table-column prop="category" label="分类" width="120"></el-table-column>
+                <el-table-column prop="price" label="价格" width="100"></el-table-column>
+                <el-table-column prop="stock" label="库存" width="80" sortable></el-table-column>
+                <el-table-column prop="sales" label="销量" width="80" sortable></el-table-column>
+                <el-table-column prop="status" label="状态" width="80">
+                  <template slot-scope="scope">
+                    <el-tag :type="scope.row.status===1?'success':scope.row.status===0?'info':'warning'" size="mini">{{scope.row.status===1?'上架':scope.row.status===0?'下架':'待审核'}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="createTime" label="创建时间" width="160" sortable></el-table-column>
+                <el-table-column label="操作" width="160" fixed="right">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="mini">详情</el-button>
+                    <el-button type="text" size="mini" v-if="scope.row.status===-1" @click="currentPage='supplier-product-examine'; addTag('商品审核','supplier-product-examine')">审核</el-button>
+                    <el-button type="text" size="mini" style="color:#f56c6c" v-if="scope.row.status===1">强制下架</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrap">
+                <el-pagination layout="total, sizes, prev, pager, next, jumper" :total="356" :page-sizes="[10,20,50,100]"></el-pagination>
+              </div>
+            </el-card>
+          </div>
+
+          <!-- ==================== 供应商商品审核 ==================== -->
+          <div v-if="currentPage === 'supplier-product-examine'" class="page-content">
+            <div class="page-header">
+              <div class="header-search">
+                <el-form :inline="true" size="small" class="search-form">
+                  <el-form-item label="商品名称">
+                    <el-input placeholder="请输入商品名称" clearable></el-input>
+                  </el-form-item>
+                  <el-form-item label="供应商">
+                    <el-select placeholder="请选择供应商" clearable>
+                      <el-option label="华鑫原材料供应商" value="1"></el-option>
+                      <el-option label="鼎盛成品供应商" value="2"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="审核状态">
+                    <el-select placeholder="请选择审核状态" clearable>
+                      <el-option label="待审核" value="0"></el-option>
+                      <el-option label="审核通过" value="1"></el-option>
+                      <el-option label="审核拒绝" value="-1"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" icon="el-icon-search">搜索</el-button>
+                    <el-button icon="el-icon-refresh">重置</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+            </div>
+
+            <el-card shadow="never" class="table-card">
+              <el-table :data="productExamineData" border stripe size="small">
+                <el-table-column prop="id" label="ID" width="80"></el-table-column>
+                <el-table-column prop="image" label="商品图片" width="80">
+                  <template slot-scope="scope"><div class="img-cell" style="background:#f0f2f5">图</div></template>
+                </el-table-column>
+                <el-table-column prop="name" label="商品名称" min-width="200"></el-table-column>
+                <el-table-column prop="supplierName" label="供应商" width="160"></el-table-column>
+                <el-table-column prop="category" label="分类" width="120"></el-table-column>
+                <el-table-column prop="price" label="价格" width="100"></el-table-column>
+                <el-table-column prop="examineStatus" label="审核状态" width="100">
+                  <template slot-scope="scope">
+                    <el-tag :type="scope.row.examineStatus===0?'warning':scope.row.examineStatus===1?'success':'danger'" size="mini">{{scope.row.examineStatus===0?'待审核':scope.row.examineStatus===1?'审核通过':'审核拒绝'}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="applyTime" label="申请时间" width="160"></el-table-column>
+                <el-table-column label="操作" width="180" fixed="right">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="mini">查看详情</el-button>
+                    <el-button type="text" size="mini" v-if="scope.row.examineStatus===0" style="color:#67c23a" @click="showProductAuditDialog=true">通过</el-button>
+                    <el-button type="text" size="mini" v-if="scope.row.examineStatus===0" style="color:#f56c6c" @click="showProductAuditDialog=true">拒绝</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrap">
+                <el-pagination layout="total, sizes, prev, pager, next, jumper" :total="12"></el-pagination>
+              </div>
+            </el-card>
+
+            <el-dialog title="商品审核" :visible.sync="showProductAuditDialog" width="500px">
+              <el-form :model="productAuditForm" label-width="100px" size="small">
+                <el-form-item label="审核结果">
+                  <el-radio-group v-model="productAuditForm.result">
+                    <el-radio :label="1">通过</el-radio>
+                    <el-radio :label="-1">拒绝</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+                <el-form-item label="审核备注" v-if="productAuditForm.result===-1">
+                  <el-input v-model="productAuditForm.reason" type="textarea" :rows="4" placeholder="请输入拒绝原因"></el-input>
+                </el-form-item>
+              </el-form>
+              <div slot="footer">
+                <el-button @click="showProductAuditDialog=false">取消</el-button>
+                <el-button type="primary" @click="showProductAuditDialog=false">确定</el-button>
+              </div>
+            </el-dialog>
+          </div>
+
+
+          <!-- ==================== 供应商订单列表 ==================== -->
+          <div v-if="currentPage === 'supplier-order-list'" class="page-content">
+            <div class="page-header">
+              <div class="header-search">
+                <el-form :inline="true" size="small" class="search-form">
+                  <el-form-item label="订单号">
+                    <el-input placeholder="请输入订单号" clearable></el-input>
+                  </el-form-item>
+                  <el-form-item label="供应商">
+                    <el-select placeholder="请选择供应商" clearable>
+                      <el-option label="华鑫原材料供应商" value="1"></el-option>
+                      <el-option label="鼎盛成品供应商" value="2"></el-option>
+                      <el-option label="联合配件供应商" value="3"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="订单状态">
+                    <el-select placeholder="请选择订单状态" clearable>
+                      <el-option label="待付款" value="0"></el-option>
+                      <el-option label="待发货" value="1"></el-option>
+                      <el-option label="待收货" value="2"></el-option>
+                      <el-option label="已完成" value="3"></el-option>
+                      <el-option label="已取消" value="-1"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="下单时间">
+                    <el-date-picker type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd"></el-date-picker>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" icon="el-icon-search">搜索</el-button>
+                    <el-button icon="el-icon-refresh">重置</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+              <div class="header-actions">
+                <el-button type="success" icon="el-icon-download" size="small">导出订单</el-button>
+              </div>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="stat-cards">
+              <el-row :gutter="16">
+                <el-col :span="4">
+                  <div class="stat-card small">
+                    <div class="stat-info"><div class="stat-value" style="color:#1890ff">1,289</div><div class="stat-label">订单总数</div></div>
+                  </div>
+                </el-col>
+                <el-col :span="4">
+                  <div class="stat-card small">
+                    <div class="stat-info"><div class="stat-value" style="color:#faad14">56</div><div class="stat-label">待发货</div></div>
+                  </div>
+                </el-col>
+                <el-col :span="4">
+                  <div class="stat-card small">
+                    <div class="stat-info"><div class="stat-value" style="color:#52c41a">1,120</div><div class="stat-label">已完成</div></div>
+                  </div>
+                </el-col>
+                <el-col :span="4">
+                  <div class="stat-card small">
+                    <div class="stat-info"><div class="stat-value" style="color:#ff4d4f">23</div><div class="stat-label">退款中</div></div>
+                  </div>
+                </el-col>
+                <el-col :span="4">
+                  <div class="stat-card small">
+                    <div class="stat-info"><div class="stat-value" style="color:#722ed1">¥528.6万</div><div class="stat-label">累计金额</div></div>
+                  </div>
+                </el-col>
+                <el-col :span="4">
+                  <div class="stat-card small">
+                    <div class="stat-info"><div class="stat-value" style="color:#13c2c2">¥42.3万</div><div class="stat-label">待结算</div></div>
+                  </div>
+                </el-col>
+              </el-row>
+            </div>
+
+            <el-card shadow="never" class="table-card">
+              <el-table :data="supplierOrderListData" border stripe size="small">
+                <el-table-column type="selection" width="50"></el-table-column>
+                <el-table-column prop="orderId" label="订单号" width="180" sortable></el-table-column>
+                <el-table-column prop="supplierName" label="供应商" width="160"></el-table-column>
+                <el-table-column prop="productName" label="商品信息" min-width="200"></el-table-column>
+                <el-table-column prop="totalPrice" label="订单金额" width="100" sortable></el-table-column>
+                <el-table-column prop="supplierAmount" label="供应商结算额" width="120" sortable></el-table-column>
+                <el-table-column prop="platformCommission" label="平台佣金" width="100"></el-table-column>
+                <el-table-column prop="buyer" label="买家" width="100"></el-table-column>
+                <el-table-column prop="status" label="订单状态" width="90">
+                  <template slot-scope="scope">
+                    <el-tag :type="scope.row.statusType" size="mini">{{scope.row.status}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="createTime" label="下单时间" width="160" sortable></el-table-column>
+                <el-table-column label="操作" width="100" fixed="right">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="mini">详情</el-button>
+                    <el-button type="text" size="mini">备注</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrap">
+                <el-pagination layout="total, sizes, prev, pager, next, jumper" :total="1289" :page-sizes="[10,20,50,100]"></el-pagination>
+              </div>
+            </el-card>
+          </div>
+
+          <!-- ==================== 供应商退款订单 ==================== -->
+          <div v-if="currentPage === 'supplier-order-refund'" class="page-content">
+            <div class="page-header">
+              <div class="header-search">
+                <el-form :inline="true" size="small" class="search-form">
+                  <el-form-item label="退款单号">
+                    <el-input placeholder="请输入退款单号" clearable></el-input>
+                  </el-form-item>
+                  <el-form-item label="供应商">
+                    <el-select placeholder="请选择供应商" clearable>
+                      <el-option label="华鑫原材料供应商" value="1"></el-option>
+                      <el-option label="鼎盛成品供应商" value="2"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="退款类型">
+                    <el-select placeholder="请选择退款类型" clearable>
+                      <el-option label="仅退款" value="refund"></el-option>
+                      <el-option label="退货退款" value="return_refund"></el-option>
+                      <el-option label="换货" value="exchange"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="退款状态">
+                    <el-select placeholder="请选择退款状态" clearable>
+                      <el-option label="待审核" value="0"></el-option>
+                      <el-option label="待退款" value="1"></el-option>
+                      <el-option label="已退款" value="2"></el-option>
+                      <el-option label="已拒绝" value="-1"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" icon="el-icon-search">搜索</el-button>
+                    <el-button icon="el-icon-refresh">重置</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+            </div>
+            <el-card shadow="never" class="table-card">
+              <el-table :data="refundOrderData" border stripe size="small">
+                <el-table-column prop="refundId" label="退款单号" width="180"></el-table-column>
+                <el-table-column prop="orderId" label="订单号" width="180"></el-table-column>
+                <el-table-column prop="supplierName" label="供应商" width="160"></el-table-column>
+                <el-table-column prop="productName" label="商品信息" min-width="180"></el-table-column>
+                <el-table-column prop="refundType" label="退款类型" width="100">
+                  <template slot-scope="scope">
+                    <el-tag size="mini">{{scope.row.refundType}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="refundAmount" label="退款金额" width="100"></el-table-column>
+                <el-table-column prop="refundReason" label="退款原因" min-width="160"></el-table-column>
+                <el-table-column prop="status" label="状态" width="100">
+                  <template slot-scope="scope">
+                    <el-tag :type="scope.row.statusType" size="mini">{{scope.row.status}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="applyTime" label="申请时间" width="160"></el-table-column>
+                <el-table-column label="操作" width="150" fixed="right">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="mini">详情</el-button>
+                    <el-button type="text" size="mini" v-if="scope.row.rawStatus===0" style="color:#67c23a">审核</el-button>
+                    <el-button type="text" size="mini" v-if="scope.row.rawStatus===1" style="color:#1890ff">确认退款</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrap">
+                <el-pagination layout="total, sizes, prev, pager, next, jumper" :total="23"></el-pagination>
+              </div>
+            </el-card>
+          </div>
+
+          <!-- ==================== 供应商发货管理 ==================== -->
+          <div v-if="currentPage === 'supplier-order-deliver'" class="page-content">
+            <div class="page-header">
+              <div class="header-search">
+                <el-form :inline="true" size="small" class="search-form">
+                  <el-form-item label="供应商">
+                    <el-select placeholder="请选择供应商" clearable>
+                      <el-option label="华鑫原材料供应商" value="1"></el-option>
+                      <el-option label="鼎盛成品供应商" value="2"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="发货状态">
+                    <el-select placeholder="请选择发货状态" clearable>
+                      <el-option label="待发货" value="0"></el-option>
+                      <el-option label="已发货" value="1"></el-option>
+                      <el-option label="已收货" value="2"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="物流公司">
+                    <el-select placeholder="请选择物流公司" clearable>
+                      <el-option label="顺丰速运" value="sf"></el-option>
+                      <el-option label="中通快递" value="zt"></el-option>
+                      <el-option label="韵达快递" value="yd"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" icon="el-icon-search">搜索</el-button>
+                    <el-button icon="el-icon-refresh">重置</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+            </div>
+            <el-card shadow="never" class="table-card">
+              <el-table :data="deliverData" border stripe size="small">
+                <el-table-column prop="orderId" label="订单号" width="180"></el-table-column>
+                <el-table-column prop="supplierName" label="供应商" width="160"></el-table-column>
+                <el-table-column prop="productName" label="商品信息" min-width="200"></el-table-column>
+                <el-table-column prop="deliverStatus" label="发货状态" width="100">
+                  <template slot-scope="scope">
+                    <el-tag :type="scope.row.deliverStatus==='已发货'?'success':'warning'" size="mini">{{scope.row.deliverStatus}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="logisticsCompany" label="物流公司" width="120"></el-table-column>
+                <el-table-column prop="logisticsNo" label="物流单号" width="160"></el-table-column>
+                <el-table-column prop="deliverTime" label="发货时间" width="160"></el-table-column>
+                <el-table-column label="操作" width="120" fixed="right">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="mini" v-if="scope.row.deliverStatus==='待发货'">发货</el-button>
+                    <el-button type="text" size="mini" v-else>物流详情</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrap">
+                <el-pagination layout="total, sizes, prev, pager, next, jumper" :total="56"></el-pagination>
+              </div>
+            </el-card>
+          </div>
+
+          <!-- ==================== 供应商资金记录 ==================== -->
+          <div v-if="currentPage === 'supplier-finance-bill'" class="page-content">
+            <div class="page-header">
+              <div class="header-search">
+                <el-form :inline="true" size="small" class="search-form">
+                  <el-form-item label="供应商">
+                    <el-select placeholder="请选择供应商" clearable>
+                      <el-option label="华鑫原材料供应商" value="1"></el-option>
+                      <el-option label="鼎盛成品供应商" value="2"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="资金类型">
+                    <el-select placeholder="请选择资金类型" clearable>
+                      <el-option label="订单收入" value="income"></el-option>
+                      <el-option label="佣金扣除" value="commission"></el-option>
+                      <el-option label="提现支出" value="withdraw"></el-option>
+                      <el-option label="退款支出" value="refund"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="时间范围">
+                    <el-date-picker type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd"></el-date-picker>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" icon="el-icon-search">搜索</el-button>
+                    <el-button icon="el-icon-refresh">重置</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+              <div class="header-actions">
+                <el-button type="success" icon="el-icon-download" size="small">导出</el-button>
+              </div>
+            </div>
+            <el-card shadow="never" class="table-card">
+              <el-table :data="financeBillData" border stripe size="small">
+                <el-table-column prop="id" label="ID" width="80"></el-table-column>
+                <el-table-column prop="supplierName" label="供应商" width="160"></el-table-column>
+                <el-table-column prop="type" label="资金类型" width="120">
+                  <template slot-scope="scope">
+                    <el-tag :type="scope.row.typeTag" size="mini">{{scope.row.type}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="amount" label="金额" width="120" sortable>
+                  <template slot-scope="scope">
+                    <span :style="{color: scope.row.amount.startsWith('+')?'#52c41a':'#ff4d4f'}">{{scope.row.amount}}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="balance" label="当前余额" width="120"></el-table-column>
+                <el-table-column prop="relatedOrder" label="关联单号" width="180"></el-table-column>
+                <el-table-column prop="remark" label="备注" min-width="200"></el-table-column>
+                <el-table-column prop="createTime" label="创建时间" width="160" sortable></el-table-column>
+              </el-table>
+              <div class="pagination-wrap">
+                <el-pagination layout="total, sizes, prev, pager, next, jumper" :total="256"></el-pagination>
+              </div>
+            </el-card>
+          </div>
+
+          <!-- ==================== 供应商提现管理 ==================== -->
+          <div v-if="currentPage === 'supplier-finance-extract'" class="page-content">
+            <div class="page-header">
+              <div class="header-search">
+                <el-form :inline="true" size="small" class="search-form">
+                  <el-form-item label="供应商">
+                    <el-select placeholder="请选择供应商" clearable>
+                      <el-option label="华鑫原材料供应商" value="1"></el-option>
+                      <el-option label="鼎盛成品供应商" value="2"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="提现状态">
+                    <el-select placeholder="请选择提现状态" clearable>
+                      <el-option label="待审核" value="0"></el-option>
+                      <el-option label="审核通过待转账" value="1"></el-option>
+                      <el-option label="已转账" value="2"></el-option>
+                      <el-option label="审核拒绝" value="-1"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="提现方式">
+                    <el-select placeholder="请选择提现方式" clearable>
+                      <el-option label="银行转账" value="bank"></el-option>
+                      <el-option label="支付宝" value="alipay"></el-option>
+                      <el-option label="微信" value="wechat"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" icon="el-icon-search">搜索</el-button>
+                    <el-button icon="el-icon-refresh">重置</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+            </div>
+            <el-card shadow="never" class="table-card">
+              <el-table :data="extractData" border stripe size="small">
+                <el-table-column prop="id" label="ID" width="80"></el-table-column>
+                <el-table-column prop="supplierName" label="供应商" width="160"></el-table-column>
+                <el-table-column prop="extractAmount" label="提现金额" width="120" sortable></el-table-column>
+                <el-table-column prop="extractMethod" label="提现方式" width="100"></el-table-column>
+                <el-table-column prop="bankInfo" label="收款信息" min-width="200"></el-table-column>
+                <el-table-column prop="status" label="状态" width="100">
+                  <template slot-scope="scope">
+                    <el-tag :type="scope.row.statusType" size="mini">{{scope.row.status}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="applyTime" label="申请时间" width="160"></el-table-column>
+                <el-table-column label="操作" width="160" fixed="right">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="mini" v-if="scope.row.rawStatus===0">审核</el-button>
+                    <el-button type="text" size="mini" v-if="scope.row.rawStatus===1">转账</el-button>
+                    <el-button type="text" size="mini">详情</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrap">
+                <el-pagination layout="total, sizes, prev, pager, next, jumper" :total="45"></el-pagination>
+              </div>
+            </el-card>
+          </div>
+
+          <!-- ==================== 供应商财务对账 ==================== -->
+          <div v-if="currentPage === 'supplier-finance-reconciliation'" class="page-content">
+            <div class="page-header">
+              <div class="header-search">
+                <el-form :inline="true" size="small" class="search-form">
+                  <el-form-item label="供应商">
+                    <el-select placeholder="请选择供应商" clearable>
+                      <el-option label="华鑫原材料供应商" value="1"></el-option>
+                      <el-option label="鼎盛成品供应商" value="2"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="对账周期">
+                    <el-select placeholder="请选择对账周期" clearable>
+                      <el-option label="2024年1月" value="2024-01"></el-option>
+                      <el-option label="2024年2月" value="2024-02"></el-option>
+                      <el-option label="2024年3月" value="2024-03"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="对账状态">
+                    <el-select placeholder="请选择对账状态" clearable>
+                      <el-option label="待对账" value="0"></el-option>
+                      <el-option label="已对账" value="1"></el-option>
+                      <el-option label="有异议" value="-1"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" icon="el-icon-search">搜索</el-button>
+                    <el-button icon="el-icon-refresh">重置</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+              <div class="header-actions">
+                <el-button type="primary" icon="el-icon-s-claim" size="small">发起对账</el-button>
+                <el-button type="success" icon="el-icon-download" size="small">导出对账单</el-button>
+              </div>
+            </div>
+            <el-card shadow="never" class="table-card">
+              <el-table :data="reconciliationData" border stripe size="small">
+                <el-table-column prop="id" label="ID" width="80"></el-table-column>
+                <el-table-column prop="supplierName" label="供应商" width="160"></el-table-column>
+                <el-table-column prop="period" label="对账周期" width="120"></el-table-column>
+                <el-table-column prop="orderAmount" label="订单总额" width="120" sortable></el-table-column>
+                <el-table-column prop="refundAmount" label="退款金额" width="120" sortable></el-table-column>
+                <el-table-column prop="commission" label="平台佣金" width="120"></el-table-column>
+                <el-table-column prop="settlementAmount" label="应结金额" width="120" sortable></el-table-column>
+                <el-table-column prop="actualSettlement" label="已结金额" width="120"></el-table-column>
+                <el-table-column prop="status" label="对账状态" width="100">
+                  <template slot-scope="scope">
+                    <el-tag :type="scope.row.status===1?'success':scope.row.status===0?'warning':'danger'" size="mini">{{scope.row.status===1?'已对账':scope.row.status===0?'待对账':'有异议'}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="createTime" label="创建时间" width="160"></el-table-column>
+                <el-table-column label="操作" width="150" fixed="right">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="mini">详情</el-button>
+                    <el-button type="text" size="mini" v-if="scope.row.status===0">确认对账</el-button>
+                    <el-button type="text" size="mini" v-if="scope.row.status===1" @click="currentPage='supplier-finance-settlement'; addTag('结算管理','supplier-finance-settlement')">发起结算</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrap">
+                <el-pagination layout="total, sizes, prev, pager, next, jumper" :total="36"></el-pagination>
+              </div>
+            </el-card>
+          </div>
+
+          <!-- ==================== 供应商结算管理 ==================== -->
+          <div v-if="currentPage === 'supplier-finance-settlement'" class="page-content">
+            <div class="page-header">
+              <div class="header-search">
+                <el-form :inline="true" size="small" class="search-form">
+                  <el-form-item label="供应商">
+                    <el-select placeholder="请选择供应商" clearable>
+                      <el-option label="华鑫原材料供应商" value="1"></el-option>
+                      <el-option label="鼎盛成品供应商" value="2"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="结算状态">
+                    <el-select placeholder="请选择结算状态" clearable>
+                      <el-option label="待结算" value="0"></el-option>
+                      <el-option label="结算中" value="1"></el-option>
+                      <el-option label="已结算" value="2"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" icon="el-icon-search">搜索</el-button>
+                    <el-button icon="el-icon-refresh">重置</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+              <div class="header-actions">
+                <el-button type="primary" icon="el-icon-money" size="small">批量结算</el-button>
+              </div>
+            </div>
+            <el-card shadow="never" class="table-card">
+              <el-table :data="settlementData" border stripe size="small">
+                <el-table-column type="selection" width="50"></el-table-column>
+                <el-table-column prop="id" label="ID" width="80"></el-table-column>
+                <el-table-column prop="supplierName" label="供应商" width="160"></el-table-column>
+                <el-table-column prop="period" label="结算周期" width="120"></el-table-column>
+                <el-table-column prop="settlementAmount" label="结算金额" width="120" sortable></el-table-column>
+                <el-table-column prop="settlementMethod" label="结算方式" width="100"></el-table-column>
+                <el-table-column prop="bankAccount" label="收款账户" min-width="180"></el-table-column>
+                <el-table-column prop="status" label="结算状态" width="100">
+                  <template slot-scope="scope">
+                    <el-tag :type="scope.row.status===2?'success':scope.row.status===1?'warning':'info'" size="mini">{{scope.row.status===2?'已结算':scope.row.status===1?'结算中':'待结算'}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="settlementTime" label="结算时间" width="160"></el-table-column>
+                <el-table-column label="操作" width="120" fixed="right">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="mini" v-if="scope.row.status===0">确认结算</el-button>
+                    <el-button type="text" size="mini">详情</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="pagination-wrap">
+                <el-pagination layout="total, sizes, prev, pager, next, jumper" :total="28"></el-pagination>
+              </div>
+            </el-card>
+          </div>
+
+        </el-main>
+      </el-container>
+    </el-container>
+  </div>
+
+  <script>
+    // CDN fallback: 如果jsdelivr不可用，自动切换到其他CDN
+    function loadScript(url, fallbackUrl) {
+      return new Promise((resolve, reject) => {
+        var script = document.createElement('script');
+        script.src = url;
+        script.onload = resolve;
+        script.onerror = function() {
+          if (fallbackUrl) {
+            var fallback = document.createElement('script');
+            fallback.src = fallbackUrl;
+            fallback.onload = resolve;
+            fallback.onerror = reject;
+            document.head.appendChild(fallback);
+          } else {
+            reject();
+          }
+        };
+        document.head.appendChild(script);
+      });
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"></script>
+  <script>
+    if (!window.Vue) {
+      // jsdelivr CDN fallback to unpkg
+      document.write('<script src="https://unpkg.com/vue@2.7.16/dist/vue.min.js"><\/script>');
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/index.js"></script>
+  <script>
+    if (!window.ELEMENT) {
+      document.write('<script src="https://unpkg.com/element-ui@2.15.14/lib/index.js"><\/script>');
+    }
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
