@@ -5,7 +5,315 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CRMEB多商户系统 - 供应商管理原型</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.14/lib/theme-chalk/index.css">
-  <link rel="stylesheet" href="styles.css">
+  <style>
+/* CRMEB Admin Style - 供应商管理原型 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body, #app { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; }
+
+.app-wrapper { height: 100%; }
+
+/* Sidebar */
+.sidebar-container {
+  background-color: #001529;
+  transition: width 0.28s;
+  overflow: hidden;
+}
+.logo-wrap { padding: 14px 16px; border-bottom: 1px solid #ffffff1a; }
+.logo { display: flex; align-items: center; height: 32px; }
+.logo-img { width: 32px; height: 32px; border-radius: 4px; background: #1890ff; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 14px; }
+.logo-text { color: #fff; font-size: 16px; font-weight: 600; margin-left: 10px; white-space: nowrap; }
+.logo.collapse .logo-text { display: none; }
+.logo.collapse { justify-content: center; }
+
+.el-menu { border-right: none !important; }
+.el-menu--collapse .el-submenu__title span,
+.el-menu--collapse .el-menu-item span { display: none; height: 0; width: 0; overflow: hidden; visibility: hidden; }
+.el-menu--collapse .el-submenu__title .el-submenu__icon-arrow { display: none; }
+
+/* Navbar */
+.navbar {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #dcdfe6;
+  background: #fff;
+  padding: 0 16px;
+  box-shadow: 0 1px 4px rgba(0,21,41,.08);
+}
+.navbar-left { display: flex; align-items: center; }
+.hamburger { cursor: pointer; font-size: 20px; color: #5a5e66; margin-right: 16px; }
+.breadcrumb { line-height: 50px; }
+
+.navbar-right { display: flex; align-items: center; }
+.el-dropdown-link { display: flex; align-items: center; cursor: pointer; }
+.username { margin-left: 8px; font-size: 14px; }
+
+/* Tags View */
+.tags-view {
+  background: #fff;
+  border-bottom: 1px solid #d8dce5;
+  box-shadow: 0 1px 3px 0 rgba(0,0,0,.12), 0 0 3px 0 rgba(0,0,0,.04);
+  padding: 4px 10px;
+  display: flex;
+}
+.tags-wrap { display: flex; flex-wrap: nowrap; }
+.tag-item {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
+  border: 1px solid #d8dce5;
+  border-radius: 2px;
+  margin-right: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  background: #fff;
+  color: #606266;
+  transition: all .2s;
+}
+.tag-item.active {
+  color: #1890ff;
+  border-color: #1890ff;
+  background: #e8f4ff;
+}
+.tag-item .tag-close {
+  margin-left: 6px;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+  text-align: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.tag-item .tag-close:hover { background: #1890ff; color: #fff; }
+
+/* Main Content */
+.app-main {
+  background: #f0f2f5;
+  padding: 16px;
+  min-height: calc(100vh - 50px - 34px);
+}
+
+.page-content { max-width: 100%; }
+
+/* Page Header */
+.page-header {
+  background: #fff;
+  padding: 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+.header-search { }
+.search-form .el-form-item { margin-bottom: 0; }
+.header-actions { margin-top: 10px; }
+
+/* Stat Cards */
+.stat-cards { margin-bottom: 16px; }
+.stat-card {
+  background: #fff;
+  padding: 16px 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
+}
+.stat-card.small { padding: 12px 16px; }
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 24px;
+  margin-right: 16px;
+}
+.stat-card.small .stat-icon { width: 40px; height: 40px; font-size: 20px; }
+.stat-info { flex: 1; }
+.stat-value { font-size: 24px; font-weight: 600; color: #333; line-height: 1.2; }
+.stat-card.small .stat-value { font-size: 20px; }
+.stat-label { font-size: 14px; color: #999; margin-top: 4px; }
+
+/* Table Card */
+.table-card { border-radius: 4px; }
+.table-card .el-card__body { padding: 16px; }
+.pagination-wrap { padding: 16px 0; text-align: right; }
+
+/* Supplier Name Cell */
+.supplier-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.name-text {
+  color: #1890ff;
+  cursor: pointer;
+  text-decoration: none;
+}
+.name-text:hover { text-decoration: underline; }
+
+/* Image Cell */
+.img-cell {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #999;
+  overflow: hidden;
+}
+
+/* Form Card */
+.form-card { border-radius: 4px; }
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+}
+.form-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  padding: 16px 0 12px;
+  margin-top: 10px;
+  border-top: 1px solid #eee;
+}
+.form-section-title i { margin-right: 6px; color: #1890ff; }
+.form-tip { font-size: 12px; color: #999; margin-left: 10px; }
+.upload-tip { font-size: 12px; color: #999; margin-top: 4px; }
+
+.form-footer {
+  padding: 20px 0;
+  text-align: center;
+  border-top: 1px solid #eee;
+  margin-top: 20px;
+}
+
+/* Detail Header */
+.detail-header-card { border-radius: 4px; margin-bottom: 16px; }
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
+}
+.detail-avatar { margin-right: 16px; }
+.detail-info { flex: 1; }
+.detail-name { display: flex; align-items: center; gap: 8px; }
+.detail-name h2 { font-size: 18px; font-weight: 600; color: #333; }
+.detail-meta {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: #999;
+  margin-top: 8px;
+}
+.detail-actions { display: flex; gap: 8px; }
+
+.detail-stats { padding: 16px 0 0; margin-top: 16px; }
+.mini-stat {
+  text-align: center;
+  padding: 12px 8px;
+  background: #f0f2f5;
+  border-radius: 4px;
+}
+.mini-stat-val { font-size: 20px; font-weight: 600; color: #333; }
+.mini-stat-label { font-size: 12px; color: #999; margin-top: 4px; }
+
+.detail-tabs-card { border-radius: 4px; }
+.tab-search { margin-bottom: 16px; }
+
+/* Chart Placeholder */
+.chart-placeholder {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.mock-chart { width: 100%; height: 180px; position: relative; }
+.chart-bars { display: flex; align-items: flex-end; justify-content: space-around; height: 100%; }
+.chart-bars .bar {
+  width: 20px;
+  min-height: 20px;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s;
+}
+
+.mock-pie {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  position: relative;
+  background: conic-gradient(#1890ff 0deg 162deg, #52c41a 162deg 270deg, #faad14 270deg 360deg);
+}
+.pie-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  margin-left: 20px;
+}
+
+/* Classify Card */
+.classify-card { border-radius: 4px; }
+
+/* Description Override - Custom desc layout */
+.desc-section { border: 1px solid #e8e8e8; border-radius: 4px; }
+.desc-title {
+  font-weight: 600; font-size: 14px; color: #333;
+  padding: 12px 16px; border-bottom: 1px solid #e8e8e8;
+  background: #fafafa;
+}
+.desc-grid { display: grid; grid-template-columns: 1fr 1fr; }
+.desc-row {
+  display: flex; padding: 10px 16px;
+  border-bottom: 1px solid #e8e8e8;
+  border-right: 1px solid #e8e8e8;
+}
+.desc-row:last-child { border-bottom: none; }
+.desc-row.full { grid-column: 1 / -1; border-right: none; }
+.desc-label {
+  min-width: 120px; color: #999; font-size: 13px;
+  flex-shrink: 0;
+}
+.desc-value {
+  color: #333; font-size: 13px; flex: 1;
+}
+.desc-row:nth-child(odd) { border-right: 1px solid #e8e8e8; }
+.desc-row:nth-child(even) { border-right: none; }
+
+/* Element UI Color Overrides - CRMEB Style */
+.el-button--primary { background-color: #1890ff; border-color: #1890ff; }
+.el-button--primary:hover { background-color: #40a9ff; border-color: #40a9ff; }
+.el-button--primary.is-active, .el-button--primary:active { background-color: #096dd9; border-color: #096dd9; }
+.el-link--primary { color: #1890ff; }
+.el-pagination.is-background .el-pager li:not(.disabled).active { background-color: #1890ff; }
+
+/* Tags View style override */
+.el-tag--mini { height: 22px; line-height: 22px; }
+
+/* Scrollbar */
+.el-scrollbar__wrap { overflow-x: hidden; }
+
+/* Layout fixes */
+.el-aside { overflow: hidden; }
+.main-container { overflow: hidden; display: flex; flex-direction: column; }
+
+@media screen and (max-width: 768px) {
+  .sidebar-container { width: 64px !important; }
+  .stat-card .stat-icon { width: 36px; height: 36px; font-size: 16px; }
+  .stat-value { font-size: 18px; }
+}
+  </style>
 </head>
 <body>
   <div id="app">
@@ -1435,6 +1743,364 @@
       document.write('<script src="https://unpkg.com/element-ui@2.15.14/lib/index.js"><\/script>');
     }
   </script>
-  <script src="app.js"></script>
+  <script>
+// CRMEB 供应商管理原型 - Vue App
+new Vue({
+  el: '#app',
+  data() {
+    return {
+      // Layout
+      isCollapse: false,
+      currentMenu: 'supplier-list',
+      currentPage: 'supplier-list',
+      visitedViews: [
+        { path: 'supplier-list', title: '供应商列表' }
+      ],
+
+      // Chart mock heights (random-ish for visual effect)
+      barHeights1: [25, 40, 35, 50, 45, 60, 55, 70, 65, 80, 75, 85, 90, 88, 95],
+      barHeights2: [20, 35, 30, 45, 40, 55, 50, 65, 60, 75, 70, 80, 85, 82, 88],
+
+      // Detail
+      detailActiveTab: 'basic',
+      isEdit: false,
+
+      // Dialogs
+      showProductAuditDialog: false,
+      showPasswordDialog: false,
+      showSupplierDialog: false,
+
+      // Breadcrumb
+      breadcrumbSecond: '',
+      breadcrumbThird: '',
+
+      // Search Forms
+      supplierSearchForm: {
+        name: '', code: '', classifyId: '', grade: '', status: '', createTime: ''
+      },
+
+      // Supplier Form
+      supplierForm: {
+        name: '', code: '', classifyId: '', grade: 'C',
+        account: '', password: '',
+        intro: '', logo: '',
+        contactName: '', contactPhone: '', contactEmail: '', contactAddress: '',
+        businessArea: [], businessAddress: '',
+        businessScope: '', mainCategory: [], supplyArea: [], minOrderQty: 100,
+        businessLicense: '', licenseImage: '', taxNumber: '', orgCode: '',
+        settlementCycle: 'monthly', settlementMethod: 'bank',
+        commissionRate: 5.00, bankAccount: '', bankName: '', bankBranch: '',
+        remark: ''
+      },
+      supplierRules: {
+        name: [{ required: true, message: '请输入供应商名称', trigger: 'blur' }],
+        code: [{ required: true, message: '请输入供应商编号', trigger: 'blur' }],
+        classifyId: [{ required: true, message: '请选择供应商分类', trigger: 'change' }],
+        grade: [{ required: true, message: '请选择供应商等级', trigger: 'change' }],
+        account: [{ required: true, message: '请输入登陆账号', trigger: 'blur' }],
+        password: [
+          { required: true, message: '请输入初始密码', trigger: 'blur' },
+          { min: 6, max: 20, message: '密码长度为6-20位', trigger: 'blur' }
+        ],
+        contactName: [{ required: true, message: '请输入联系人', trigger: 'blur' }],
+        contactPhone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }]
+      },
+
+      // Product Audit Form
+      productAuditForm: { result: 1, reason: '' },
+
+      // Password Form
+      passwordForm: { supplierName: '', account: '', newPassword: '', confirmPassword: '' },
+      passwordRules: {
+        newPassword: [
+          { required: true, message: '请输入新密码', trigger: 'blur' },
+          { min: 6, max: 20, message: '密码长度为6-20位', trigger: 'blur' }
+        ],
+        confirmPassword: [
+          { required: true, message: '请再次输入新密码', trigger: 'blur' }
+        ]
+      },
+
+      // Area Options
+      areaOptions: [
+        { value: 'guangdong', label: '广东省', children: [
+          { value: 'shenzhen', label: '深圳市', children: [{ value: 'nanshan', label: '南山区' }, { value: 'futian', label: '福田区' }] },
+          { value: 'guangzhou', label: '广州市', children: [{ value: 'tianhe', label: '天河区' }] }
+        ]},
+        { value: 'zhejiang', label: '浙江省', children: [
+          { value: 'hangzhou', label: '杭州市', children: [{ value: 'xihu', label: '西湖区' }] }
+        ]}
+      ],
+
+      // Product Category Options
+      productCategoryOptions: [
+        { value: 'clothing', label: '服装', children: [
+          { value: 'mens', label: '男装' }, { value: 'womens', label: '女装' }
+        ]},
+        { value: 'electronics', label: '电子', children: [
+          { value: 'phone', label: '手机' }, { value: 'computer', label: '电脑' }
+        ]},
+        { value: 'home', label: '家居', children: [
+          { value: 'furniture', label: '家具' }, { value: 'decor', label: '装饰' }
+        ]}
+      ],
+
+      // Mock Data - Supplier List
+      supplierListData: [
+        { id: 1, code: 'SUP20240001', name: '华鑫原材料供应商', account: 'huaxin_supplier', logo: '', classifyName: '原材料供应商', grade: 'A', contactName: '张明华', contactPhone: '138-0000-1234', productCount: 356, orderCount: 1289, status: 1, createTime: '2024-01-15 10:30' },
+        { id: 2, code: 'SUP20240002', name: '鼎盛成品供应商', account: 'dingsheng_gys', logo: '', classifyName: '成品供应商', grade: 'A', contactName: '李鼎盛', contactPhone: '139-0000-5678', productCount: 289, orderCount: 856, status: 1, createTime: '2024-02-20 14:20' },
+        { id: 3, code: 'SUP20240003', name: '联合配件供应商', account: 'lianhe_parts', logo: '', classifyName: '配件供应商', grade: 'B', contactName: '王联合', contactPhone: '137-0000-9012', productCount: 128, orderCount: 423, status: 1, createTime: '2024-03-10 09:15' },
+        { id: 4, code: 'SUP20240004', name: '盛达包装供应商', account: 'shengda_pack', logo: '', classifyName: '包装供应商', grade: 'B', contactName: '陈盛达', contactPhone: '136-0000-3456', productCount: 56, orderCount: 178, status: 1, createTime: '2024-04-05 16:45' },
+        { id: 5, code: 'SUP20240005', name: '新材料科技供应商', account: '', logo: '', classifyName: '原材料供应商', grade: 'C', contactName: '赵新材', contactPhone: '135-0000-7890', productCount: 23, orderCount: 45, status: 0, createTime: '2024-05-18 11:30' },
+        { id: 6, code: 'SUP20240006', name: '恒达电子供应商', account: '', logo: '', classifyName: '成品供应商', grade: 'C', contactName: '钱恒达', contactPhone: '134-0000-2345', productCount: 0, orderCount: 0, status: 0, createTime: '2024-06-01 08:00' },
+        { id: 7, code: 'SUP20240007', name: '违规供应商(冻结)', account: 'weigui_gys', logo: '', classifyName: '成品供应商', grade: 'C', contactName: '孙违规', contactPhone: '133-0000-6789', productCount: 12, orderCount: 8, status: -1, createTime: '2024-03-25 13:00' },
+        { id: 8, code: 'SUP20240008', name: '诚信原材料供应商', account: 'chengxin_raw', logo: '', classifyName: '原材料供应商', grade: 'A', contactName: '周诚信', contactPhone: '132-0000-1111', productCount: 420, orderCount: 1500, status: 1, createTime: '2024-01-01 09:00' },
+      ],
+
+      // Mock Data - Supplier Detail Products
+      supplierProductData: [
+        { id: 101, name: '高级不锈钢原料304', price: '¥28.50/kg', stock: 5000, sales: 3200, status: 1, createTime: '2024-01-20' },
+        { id: 102, name: '工业级铝合金6061', price: '¥35.80/kg', stock: 3000, sales: 1800, status: 1, createTime: '2024-01-22' },
+        { id: 103, name: '特种陶瓷材料ZTA', price: '¥120.00/kg', stock: 800, sales: 450, status: 0, createTime: '2024-02-01' },
+        { id: 104, name: '碳纤维复合材料', price: '¥580.00/kg', stock: 200, sales: 150, status: 1, createTime: '2024-02-15' },
+        { id: 105, name: '高纯度铜线材', price: '¥45.60/kg', stock: 10000, sales: 8000, status: 1, createTime: '2024-03-01' },
+      ],
+
+      // Mock Data - Supplier Detail Orders
+      supplierOrderData: [
+        { orderId: 'ORD20240601001', productName: '高级不锈钢原料304 x500kg', totalPrice: '¥14,250', actualPrice: '¥14,250', buyer: '用户A', status: '已完成', statusType: 'success', createTime: '2024-06-01 10:30' },
+        { orderId: 'ORD20240601002', productName: '工业级铝合金6061 x200kg', totalPrice: '¥7,160', actualPrice: '¥7,160', buyer: '用户B', status: '待发货', statusType: 'warning', createTime: '2024-06-01 14:20' },
+        { orderId: 'ORD20240602001', productName: '碳纤维复合材料 x5kg', totalPrice: '¥2,900', actualPrice: '¥2,900', buyer: '用户C', status: '待付款', statusType: 'info', createTime: '2024-06-02 09:15' },
+        { orderId: 'ORD20240603001', productName: '高纯度铜线材 x1000kg', totalPrice: '¥45,600', actualPrice: '¥45,600', buyer: '用户D', status: '已退款', statusType: 'danger', createTime: '2024-06-03 16:45' },
+      ],
+
+      // Mock Data - Supplier Log
+      supplierLogData: [
+        { id: 1, operator: '管理员', action: '审核通过', content: '审核通过供应商入驻申请，分配分类：原材料供应商', createTime: '2024-01-15 10:30' },
+        { id: 2, operator: '管理员', action: '修改等级', content: '将供应商等级从B级调整为A级', createTime: '2024-03-01 14:00' },
+        { id: 3, operator: '管理员', action: '冻结供应商', content: '因违规操作冻结供应商账号', createTime: '2024-06-10 09:00' },
+        { id: 4, operator: '张明华', action: '新增商品', content: '新增商品：碳纤维复合材料', createTime: '2024-02-15 11:30' },
+      ],
+
+      // Mock Data - Supplier Product List
+      supplierProductListData: [
+        { id: 101, name: '高级不锈钢原料304', supplierName: '华鑫原材料供应商', category: '金属材料', price: '¥28.50/kg', stock: 5000, sales: 3200, status: 1, createTime: '2024-01-20' },
+        { id: 201, name: '智能手机Pro Max', supplierName: '鼎盛成品供应商', category: '电子成品', price: '¥4,999', stock: 200, sales: 150, status: 1, createTime: '2024-02-10' },
+        { id: 301, name: '精密轴承组件', supplierName: '联合配件供应商', category: '电子配件', price: '¥15.80/个', stock: 10000, sales: 6500, status: 1, createTime: '2024-03-05' },
+        { id: 102, name: '工业级铝合金6061', supplierName: '华鑫原材料供应商', category: '金属材料', price: '¥35.80/kg', stock: 3000, sales: 1800, status: 0, createTime: '2024-01-22' },
+        { id: 501, name: '新品特种合金', supplierName: '新材料科技供应商', category: '金属材料', price: '¥88.00/kg', stock: 500, sales: 0, status: -1, createTime: '2024-05-20' },
+      ],
+
+      // Mock Data - Product Examine
+      productExamineData: [
+        { id: 501, name: '新品特种合金', supplierName: '新材料科技供应商', category: '金属材料', price: '¥88.00/kg', examineStatus: 0, applyTime: '2024-05-20 10:00' },
+        { id: 502, name: '纳米涂层材料', supplierName: '新材料科技供应商', category: '化工原料', price: '¥150.00/kg', examineStatus: 0, applyTime: '2024-05-22 14:00' },
+        { id: 202, name: '智能手表Ultra', supplierName: '鼎盛成品供应商', category: '电子成品', price: '¥2,999', examineStatus: 1, applyTime: '2024-06-01 09:00' },
+        { id: 503, name: '不合格商品', supplierName: '某供应商', category: '其他', price: '¥1', examineStatus: -1, applyTime: '2024-04-01 08:00' },
+      ],
+
+      // Mock Data - Supplier Order List
+      supplierOrderListData: [
+        { orderId: 'ORD20240601001', supplierName: '华鑫原材料供应商', productName: '高级不锈钢原料304 x500kg', totalPrice: '¥14,250', supplierAmount: '¥13,537.5', platformCommission: '¥712.5', buyer: '用户A', status: '已完成', statusType: 'success', createTime: '2024-06-01 10:30' },
+        { orderId: 'ORD20240601002', supplierName: '华鑫原材料供应商', productName: '工业级铝合金6061 x200kg', totalPrice: '¥7,160', supplierAmount: '¥6,802', platformCommission: '¥358', buyer: '用户B', status: '待发货', statusType: 'warning', createTime: '2024-06-01 14:20' },
+        { orderId: 'ORD20240602001', supplierName: '鼎盛成品供应商', productName: '智能手机Pro Max x1', totalPrice: '¥4,999', supplierAmount: '¥4,749', platformCommission: '¥250', buyer: '用户C', status: '待付款', statusType: 'info', createTime: '2024-06-02 09:15' },
+        { orderId: 'ORD20240603001', supplierName: '联合配件供应商', productName: '精密轴承组件 x500', totalPrice: '¥7,900', supplierAmount: '¥7,505', platformCommission: '¥395', buyer: '用户D', status: '已完成', statusType: 'success', createTime: '2024-06-03 16:45' },
+        { orderId: 'ORD20240604001', supplierName: '华鑫原材料供应商', productName: '碳纤维复合材料 x5kg', totalPrice: '¥2,900', supplierAmount: '¥2,755', platformCommission: '¥145', buyer: '用户E', status: '退款中', statusType: 'danger', createTime: '2024-06-04 11:00' },
+      ],
+
+      // Mock Data - Refund Orders
+      refundOrderData: [
+        { refundId: 'REF20240601001', orderId: 'ORD20240604001', supplierName: '华鑫原材料供应商', productName: '碳纤维复合材料 x5kg', refundType: '退货退款', refundAmount: '¥2,900', refundReason: '商品质量与描述不符', status: '待审核', statusType: 'warning', rawStatus: 0, applyTime: '2024-06-05 09:00' },
+        { refundId: 'REF20240602001', orderId: 'ORD20240602002', supplierName: '鼎盛成品供应商', productName: '智能手表 x1', refundType: '仅退款', refundAmount: '¥1,999', refundReason: '商品有划痕', status: '待退款', statusType: '', rawStatus: 1, applyTime: '2024-06-06 14:00' },
+        { refundId: 'REF20240603001', orderId: 'ORD20240501001', supplierName: '联合配件供应商', productName: '轴承组件 x100', refundType: '仅退款', refundAmount: '¥1,580', refundReason: '发货延迟', status: '已退款', statusType: 'success', rawStatus: 2, applyTime: '2024-05-15 10:00' },
+      ],
+
+      // Mock Data - Deliver
+      deliverData: [
+        { orderId: 'ORD20240601002', supplierName: '华鑫原材料供应商', productName: '工业级铝合金6061 x200kg', deliverStatus: '待发货', logisticsCompany: '', logisticsNo: '', deliverTime: '' },
+        { orderId: 'ORD20240601001', supplierName: '华鑫原材料供应商', productName: '高级不锈钢原料304 x500kg', deliverStatus: '已发货', logisticsCompany: '顺丰速运', logisticsNo: 'SF1234567890', deliverTime: '2024-06-01 16:00' },
+        { orderId: 'ORD20240528001', supplierName: '鼎盛成品供应商', productName: '智能手机Pro Max x2', deliverStatus: '已收货', logisticsCompany: '中通快递', logisticsNo: 'ZT9876543210', deliverTime: '2024-05-28 14:00' },
+      ],
+
+      // Mock Data - Finance Bill
+      financeBillData: [
+        { id: 1, supplierName: '华鑫原材料供应商', type: '订单收入', typeTag: 'success', amount: '+¥13,537.50', balance: '¥528,600', relatedOrder: 'ORD20240601001', remark: '订单结算收入', createTime: '2024-06-01 10:30' },
+        { id: 2, supplierName: '华鑫原材料供应商', type: '佣金扣除', typeTag: 'warning', amount: '-¥712.50', balance: '¥527,887.50', relatedOrder: 'ORD20240601001', remark: '平台佣金扣除5%', createTime: '2024-06-01 10:30' },
+        { id: 3, supplierName: '华鑫原材料供应商', type: '提现支出', typeTag: 'danger', amount: '-¥50,000', balance: '¥477,887.50', relatedOrder: '', remark: '银行转账提现', createTime: '2024-05-15 09:00' },
+        { id: 4, supplierName: '华鑫原材料供应商', type: '退款支出', typeTag: 'danger', amount: '-¥2,755', balance: '¥475,132.50', relatedOrder: 'REF20240603001', remark: '退款扣除', createTime: '2024-05-16 14:00' },
+      ],
+
+      // Mock Data - Extract
+      extractData: [
+        { id: 1, supplierName: '华鑫原材料供应商', extractAmount: '¥50,000', extractMethod: '银行转账', bankInfo: '中国工商银行 6222****5678', status: '已转账', statusType: 'success', rawStatus: 2, applyTime: '2024-05-15 09:00' },
+        { id: 2, supplierName: '鼎盛成品供应商', extractAmount: '¥30,000', extractMethod: '支付宝', bankInfo: 'ding***@alipay.com', status: '审核通过待转账', statusType: 'warning', rawStatus: 1, applyTime: '2024-06-01 10:00' },
+        { id: 3, supplierName: '联合配件供应商', extractAmount: '¥20,000', extractMethod: '银行转账', bankInfo: '中国建设银行 6622****1234', status: '待审核', statusType: '', rawStatus: 0, applyTime: '2024-06-05 14:00' },
+      ],
+
+      // Mock Data - Reconciliation
+      reconciliationData: [
+        { id: 1, supplierName: '华鑫原材料供应商', period: '2024年5月', orderAmount: '¥156,800', refundAmount: '¥2,755', commission: '¥7,752.25', settlementAmount: '¥146,292.75', actualSettlement: '¥100,000', status: 1, createTime: '2024-06-01' },
+        { id: 2, supplierName: '鼎盛成品供应商', period: '2024年5月', orderAmount: '¥89,600', refundAmount: '¥0', commission: '¥4,480', settlementAmount: '¥85,120', actualSettlement: '¥0', status: 0, createTime: '2024-06-02' },
+        { id: 3, supplierName: '联合配件供应商', period: '2024年5月', orderAmount: '¥42,300', refundAmount: '¥1,580', commission: '¥2,036', settlementAmount: '¥38,684', actualSettlement: '¥0', status: -1, createTime: '2024-06-03' },
+      ],
+
+      // Mock Data - Settlement
+      settlementData: [
+        { id: 1, supplierName: '华鑫原材料供应商', period: '2024年5月', settlementAmount: '¥46,292.75', settlementMethod: '银行转账', bankAccount: '中国工商银行 深圳南山支行 6222****5678', status: 2, settlementTime: '2024-06-05' },
+        { id: 2, supplierName: '鼎盛成品供应商', period: '2024年5月', settlementAmount: '¥85,120', settlementMethod: '支付宝', bankAccount: 'ding***@alipay.com', status: 1, settlementTime: '' },
+        { id: 3, supplierName: '联合配件供应商', period: '2024年5月', settlementAmount: '¥38,684', settlementMethod: '银行转账', bankAccount: '中国建设银行 6622****1234', status: 0, settlementTime: '' },
+      ],
+
+    }
+  },
+  computed: {
+      breadcrumbMap() {
+      return {
+        'supplier-list': { second: '供应商管理', third: '供应商列表' },
+        'supplier-detail': { second: '供应商管理', third: '供应商详情' },
+        'supplier-product-list': { second: '供应商商品', third: '商品列表' },
+        'supplier-product-examine': { second: '供应商商品', third: '商品审核' },
+        'supplier-order-list': { second: '供应商订单', third: '订单列表' },
+        'supplier-order-refund': { second: '供应商订单', third: '退款订单' },
+        'supplier-order-deliver': { second: '供应商订单', third: '发货管理' },
+        'supplier-finance-bill': { second: '供应商财务', third: '资金记录' },
+        'supplier-finance-extract': { second: '供应商财务', third: '提现管理' },
+        'supplier-finance-reconciliation': { second: '供应商财务', third: '财务对账' },
+        'supplier-finance-settlement': { second: '供应商财务', third: '结算管理' },
+      };
+    }
+  },
+  watch: {
+    currentPage(val) {
+      this.updateBreadcrumb(val);
+    },
+    currentMenu(val) {
+      this.updateBreadcrumb(val);
+    }
+  },
+  created() {
+    this.updateBreadcrumb(this.currentPage);
+  },
+  methods: {
+    toggleCollapse() {
+      this.isCollapse = !this.isCollapse;
+    },
+    handleMenuSelect(index) {
+      this.currentMenu = index;
+      this.currentPage = index;
+      this.addTag(this.getBreadcrumbTitle(index), index);
+    },
+    getBreadcrumbTitle(path) {
+      const map = this.breadcrumbMap;
+      if (map[path]) return map[path].third || map[path].second || '首页';
+      return path;
+    },
+    updateBreadcrumb(path) {
+      const map = this.breadcrumbMap;
+      if (map[path]) {
+        this.breadcrumbSecond = map[path].second;
+        this.breadcrumbThird = map[path].third;
+      }
+    },
+    addTag(title, path) {
+      const exists = this.visitedViews.find(v => v.path === path);
+      if (!exists) {
+        this.visitedViews.push({ path, title });
+      }
+    },
+    closeTag(index) {
+      this.visitedViews.splice(index, 1);
+      if (this.visitedViews.length > 0) {
+        const last = this.visitedViews[this.visitedViews.length - 1];
+        this.currentPage = last.path;
+        this.currentMenu = last.path;
+      }
+    },
+    searchSupplier() {},
+    resetSupplierSearch() {
+      this.supplierSearchForm = { name: '', code: '', classifyId: '', grade: '', status: '', createTime: '' };
+    },
+    handleSizeChange() {},
+    handleCurrentChange() {},
+    approveSupplier(row) {
+      this.$message.info('审核功能已移除');
+    },
+    openPasswordDialog(row) {
+      this.passwordForm = {
+        supplierName: row.name,
+        account: row.account || '未设置',
+        newPassword: '',
+        confirmPassword: ''
+      };
+      this.showPasswordDialog = true;
+    },
+    submitPassword() {
+      if (this.passwordForm.newPassword !== this.passwordForm.confirmPassword) {
+        this.$message.error('两次输入的密码不一致');
+        return;
+      }
+      if (this.passwordForm.newPassword.length < 6) {
+        this.$message.error('密码长度不能少于6位');
+        return;
+      }
+      this.$message.success('密码修改成功');
+      this.showPasswordDialog = false;
+    },
+    openSupplierDialog(row) {
+      if (row) {
+        this.isEdit = true;
+        this.supplierForm = {
+          name: row.name, code: row.code, classifyId: row.classifyName === '原材料供应商' ? '1' : row.classifyName === '成品供应商' ? '2' : row.classifyName === '配件供应商' ? '3' : '4',
+          grade: row.grade, account: row.account || '', password: '',
+          intro: '', logo: '',
+          contactName: row.contactName, contactPhone: row.contactPhone, contactEmail: '', contactAddress: '',
+          businessArea: [], businessAddress: '',
+          businessScope: '', mainCategory: [], supplyArea: [], minOrderQty: 100,
+          businessLicense: '', licenseImage: '', taxNumber: '', orgCode: '',
+          settlementCycle: 'monthly', settlementMethod: 'bank',
+          commissionRate: 5.00, bankAccount: '', bankName: '', bankBranch: '',
+          remark: ''
+        };
+      } else {
+        this.isEdit = false;
+        this.supplierForm = {
+          name: '', code: '', classifyId: '', grade: 'C',
+          account: '', password: '',
+          intro: '', logo: '',
+          contactName: '', contactPhone: '', contactEmail: '', contactAddress: '',
+          businessArea: [], businessAddress: '',
+          businessScope: '', mainCategory: [], supplyArea: [], minOrderQty: 100,
+          businessLicense: '', licenseImage: '', taxNumber: '', orgCode: '',
+          settlementCycle: 'monthly', settlementMethod: 'bank',
+          commissionRate: 5.00, bankAccount: '', bankName: '', bankBranch: '',
+          remark: ''
+        };
+      }
+      this.showSupplierDialog = true;
+    },
+    submitSupplierForm() {
+      this.$refs.supplierFormRef.validate((valid) => {
+        if (valid) {
+          this.$message.success(this.isEdit ? '供应商信息已更新' : '供应商已添加成功');
+          this.showSupplierDialog = false;
+        } else {
+          return false;
+        }
+      });
+    },
+  },
+  components: {
+    'router-tag': {
+      props: ['tag', 'active'],
+      template: `
+        <div class="tag-item" :class="{active: active}" @click="$emit('click')">
+          <span>{{tag.title}}</span>
+          <span class="tag-close" @click.stop="$emit('close')">x</span>
+        </div>
+      `
+    }
+  }
+});
+  </script>
 </body>
 </html>
